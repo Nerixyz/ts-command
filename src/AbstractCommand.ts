@@ -6,12 +6,17 @@ export abstract class AbstractCommand<Props = {}, Result = string> {
     return [];
   }
 
+  isEnabled(user: any): boolean {
+    return true;
+  }
+
   /**
    * Do the main work
    * @param {Props} props
+   * @param user
    * @returns {Promise<Result> | Result}
    */
-  abstract run(props: Props): Result | Promise<Result>;
+  abstract run(props: Props, user: any): Result | Promise<Result>;
 
   /**
    * Format to a string if needed

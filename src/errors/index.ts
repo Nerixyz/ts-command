@@ -15,3 +15,9 @@ export class CommandNotFoundError extends Error {
     super(`${name} could not be found.`);
   }
 }
+
+export class CommandNotEnabled extends Error {
+  constructor(public readonly user: any, command: string) {
+    super(`${command} is not enabled.`);
+  }
+}
