@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "lib": ["ES2019"],
+    "esModuleInterop": false,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "target": "ES2017",
+    "sourceMap": true,
+    "declaration": true,
+    "baseUrl": "src",
+    "outDir": "dist",
+    "noUnusedLocals": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "strictBindCallApply": true,
+    "strictFunctionTypes": true
+  }
+}

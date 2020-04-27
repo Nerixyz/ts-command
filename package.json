@@ -1,0 +1,35 @@
+{
+  "name": "ts-command",
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "mocha -r ts-node/register test/**/*.spec.ts",
+    "build": "tsc -p tsconfig.json",
+    "prepare": "npm run build"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "pretty-quick --staged"
+    }
+  },
+  "dependencies": {
+    "reflect-metadata": "^0.1.13",
+    "lodash": "^4.17.15"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.149",
+    "@types/node": "^13.9.0",
+    "typescript": "^3.8.3",
+    "mocha": "^7.1.2",
+    "@types/mocha": "^7.0.2",
+    "ts-node": "^8.9.1",
+    "@typescript-eslint/eslint-plugin": "^2.22.0",
+    "@typescript-eslint/parser": "^2.22.0",
+    "eslint": "^6.8.0",
+    "eslint-config-prettier": "^6.10.0",
+    "prettier": "^2.0.2",
+    "pretty-quick": "^2.0.1",
+    "husky": "^4.2.5"
+  }
+}
