@@ -1,13 +1,13 @@
 import { Class } from '../types';
 
-export type ServiceConstructor<T> = Class<T, {__registered?: true,__serviceId?: string, __filename?: string}>;
+export type ServiceConstructor<T> = Class<T, { __registered?: true; __serviceId?: string; __filename?: string }>;
 
 export function Service() {
-  return function(target: ServiceConstructor<any>) {
+  return function (target: ServiceConstructor<any>) {
     target.__registered = true;
     target.__filename = getCaller();
     target.__serviceId = `${target.name}.${target.__filename}`;
-  }
+  };
 }
 
 function getCaller(): string {

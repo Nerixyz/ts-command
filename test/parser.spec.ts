@@ -85,7 +85,7 @@ describe('Parser', () => {
     assert.deepStrictEqual(parseCommand(message, tokenizeMessage(message), config), {
       num: 123.456,
       str: 'abc',
-      long: 'This is my text :) very cool'
+      long: 'This is my text :) very cool',
     });
   });
   it('fails on invalid input', () => {
@@ -96,7 +96,7 @@ describe('Parser', () => {
     ];
     const message = '123';
     assert.throws(() => {
-        parseCommand(message, tokenizeMessage(message), config);
+      parseCommand(message, tokenizeMessage(message), config);
     }, IllegalArgumentError);
   });
 });

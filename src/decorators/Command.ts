@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { AbstractCommand } from '../AbstractCommand';
 import { StrObject } from '../types';
 
-export type CommandEntry<T> =  {
+export type CommandEntry<T> = {
   type: 'string' | 'flag' | 'number' | 'toEnd';
   name: keyof T;
   optional?: true;

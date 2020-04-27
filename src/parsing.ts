@@ -9,7 +9,11 @@ import { IllegalArgumentError } from './errors';
  * @param {CommandInfo<T>} info
  * @returns {T}
  */
-export function parseCommand<T extends StrObject>(message: string, splitted: [string, number][], info: CommandInfo<T>): T {
+export function parseCommand<T extends StrObject>(
+  message: string,
+  splitted: [string, number][],
+  info: CommandInfo<T>,
+): T {
   const obj: any = {};
 
   let msgIdx = 0;
@@ -24,7 +28,7 @@ export function parseCommand<T extends StrObject>(message: string, splitted: [st
         msgIdx++;
       }
       // if it's not set do nothing
-    } else if(type === 'toEnd') {
+    } else if (type === 'toEnd') {
       // simply read the message to end :)
       obj[name] = message.substring(next()?.[1]);
       break;
@@ -40,20 +44,18 @@ export function parseCommand<T extends StrObject>(message: string, splitted: [st
       const [item] = next();
       obj[name] = type === 'number' ? Number(item) : item;
     }
-    if(msgIdx >= splitted.length)
-      break;
+    if (msgIdx >= splitted.length) break;
   }
   checkObject(obj, info);
   return obj;
 }
 
 function checkObject(obj: any, info: CommandInfo<any>): void {
-  for(const arg of info) {
-    if(arg.optional || arg.type === 'flag') continue;
+  for (const arg of info) {
+    if (arg.optional || arg.type === 'flag') continue;
 
-    if(typeof obj[arg.name])
-
-      if(typeof obj[arg.name] === 'undefined')
+    if (typeof obj[arg.name])
+      if (typeof obj[arg.name] === 'undefined')
         throw new IllegalArgumentError(arg.name.toString(), 'not supplied; required');
   }
 }

@@ -2,7 +2,10 @@ import { AbstractCommand } from '../../src/AbstractCommand';
 import { ExampleService } from './ExampleService';
 import { Command } from '../../src/decorators/Command';
 
-@Command([{name: 'prop', type: 'string'}, {name: 'flag', type: 'flag'}])
+@Command([
+  { name: 'prop', type: 'string' },
+  { name: 'flag', type: 'flag' },
+])
 export default class Test extends AbstractCommand {
   constructor(private service: ExampleService) {
     super();
@@ -16,7 +19,7 @@ export default class Test extends AbstractCommand {
     return ['command'];
   }
 
-  run({ prop, flag }: { prop: string, flag: boolean }): Promise<string> | string {
+  run({ prop, flag }: { prop: string; flag: boolean }): Promise<string> | string {
     return `${prop} ${flag} ${this.service.toString()}`;
   }
 }

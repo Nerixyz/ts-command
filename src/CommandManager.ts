@@ -2,7 +2,7 @@ import { CommandClass, CommandContainer } from './CommandContainer';
 import { ServiceConstructor } from './decorators/Service';
 import { AbstractCommand } from './AbstractCommand';
 import { Class } from './types';
-import { CommandNotFoundError,  IllegalFormatError } from './errors';
+import { CommandNotFoundError, IllegalFormatError } from './errors';
 import { parseCommand, tokenizeMessage } from './parsing';
 
 export class CommandManager {
