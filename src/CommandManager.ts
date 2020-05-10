@@ -55,7 +55,7 @@ export class CommandManager<User = any> {
     this.container.reloadAll();
   }
 
-  async onCommand<T = string>(message: string, user: User): Promise<T & string> {
+  async onCommand<T = string>(message: string, user: User, preCommand?: () => void): Promise<T & string> {
     if (!message) throw new IllegalFormatError();
     const commandName = message.indexOf(' ') === -1 ? message : message.substring(0, message.indexOf(' '));
     if (!commandName) throw new IllegalFormatError();
@@ -81,7 +81,8 @@ export class CommandManager<User = any> {
     const argsPart = message.substring(commandName.length + 1);
     const argsObj = parseCommand(argsPart, tokenizeMessage(argsPart), command.arguments);
 
-    return await wrapper.instance[command.key](argsObj, user);
+    preCommand?.();
+    await wrapper.instance[command.key](argsObj, user);
   }
 
   private onReload(message: string, user: User): string {
