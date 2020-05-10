@@ -1,7 +1,7 @@
 import { AbstractCommand, Command, CommandClass, Restrict, RestrictClass } from '../../src';
 import { RegisteredService } from './services.mock';
 import 'reflect-metadata';
-import { Injectable } from '../../src/decorators/Injectable';
+import { Injectable } from '../../src/decorators';
 
 @RestrictClass((user, instance: RestrictedCommandsMockClass) => instance.service && user.auth)
 @CommandClass('restrictedClass')

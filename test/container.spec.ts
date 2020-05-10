@@ -8,7 +8,7 @@ describe('CommandContainer', () => {
   it('registers services', () => {
     const container = new CommandContainer().registerService(RegisteredService);
     assert.strictEqual(container.services?.length, 1, 'There should be at exactly one service');
-    assert.strictEqual(container.services[0]?.value, undefined, 'The value should not be computed yet');
+    assert.strictEqual(container.services[0]?.value, null, 'The value should not be computed yet');
     assert.strictEqual(container.services[0]?.type, RegisteredService, 'The type should be RegisteredService');
   });
 

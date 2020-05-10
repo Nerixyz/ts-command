@@ -2,7 +2,7 @@ import { Service } from '../../src/decorators';
 
 export class TestRequirement {}
 
-@Service
+@Service()
 export class ExampleService {
   constructor(private test: TestRequirement) {}
 
