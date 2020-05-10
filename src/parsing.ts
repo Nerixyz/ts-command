@@ -1,18 +1,18 @@
 import { StrObject } from './types';
-import { CommandInfo } from './decorators/Command';
 import { IllegalArgumentError } from './errors';
+import { CommandArguments } from './command.types';
 
 /**
  *
  * @param {string} message
  * @param {string[]} splitted - everything w/o the initial command
- * @param {CommandInfo<T>} info
+ * @param {CommandArguments<T>} info
  * @returns {T}
  */
 export function parseCommand<T extends StrObject>(
   message: string,
   splitted: [string, number][],
-  info: CommandInfo<T>,
+  info: CommandArguments<T>,
 ): T {
   const obj: any = {};
 
@@ -21,7 +21,7 @@ export function parseCommand<T extends StrObject>(
   for (let infoIdx = 0; infoIdx < info.length; infoIdx++) {
     const { name, type, optional } = info[infoIdx];
     if (type === 'flag') {
-      const [current] = splitted[msgIdx];
+      const current = splitted[msgIdx]?.[0];
       // check if it's the flag
       if (current?.toLowerCase() === `-${name.toString().toLowerCase()}`) {
         obj[name] = true;
@@ -41,7 +41,7 @@ export function parseCommand<T extends StrObject>(
       }
     } else {
       // type: string | number
-      const [item] = next();
+      const item = next()?.[0];
       obj[name] = type === 'number' ? Number(item) : item;
     }
     if (msgIdx >= splitted.length) break;
@@ -50,7 +50,7 @@ export function parseCommand<T extends StrObject>(
   return obj;
 }
 
-function checkObject(obj: any, info: CommandInfo<any>): void {
+function checkObject(obj: any, info: CommandArguments): void {
   for (const arg of info) {
     if (arg.optional || arg.type === 'flag') continue;
 

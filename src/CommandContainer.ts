@@ -1,36 +1,50 @@
-import { AbstractCommand } from './AbstractCommand';
-import { CommandTarget } from './decorators/Command';
-import { ServiceConstructor } from './decorators/Service';
 import { pull } from 'lodash';
-import { Class, InstantiatedClass } from './types';
-import { IllegalArgumentError } from './errors';
+import { Class } from './types';
+import { IllegalArgumentError, NotFoundError } from './errors';
+import * as assert from 'assert';
+import { getMetadata, hasMetadata, MetadataKey } from './decorators';
+import { CommandFnInfo } from './command.types';
+import { injectServices } from './injection';
 
-type Service<T> = {
-  type: ServiceConstructor<T>;
-  value?: T;
-  // true => do not save the value
-  forceCompute?: boolean;
-  dependents: Class<AbstractCommand>[];
+export type CommandInstanceInfo<T = any> = {
+  filename: string;
+  commandId: string;
+  name: string;
+  instance: T;
+  class: Class<T>;
+  commands: CommandFnInfo[];
 };
-type InstantiatedCommand = InstantiatedClass<AbstractCommand, CommandTarget>;
-export type CommandClass<T extends AbstractCommand = AbstractCommand> = Class<T, CommandTarget>;
 
+export type ServiceInfo<T> = {
+  type: Class<T>;
+  value: T | null;
+  // true => do not save the value
+  forceCompute: boolean | null;
+  dependents: Array<string>;
+  invalid: boolean;
+  filename: string | null;
+  serviceId: string | null;
+};
 export class CommandContainer {
-  commands: InstantiatedCommand[] = [];
-  services: Service<any>[] = [];
+  commands: CommandInstanceInfo[] = [];
+  services: ServiceInfo<any>[] = [];
 
-  loadCommand(cmd: CommandClass): this {
+  loadCommand(cmd: Class): this {
     this.instantiateCommand(cmd);
     return this;
   }
 
-  registerService(service: InstantiatedClass<any> | Class<any>, forceCompute = false): this {
+  registerService(service: any | Class, forceCompute = false): this {
     if (typeof service === 'function') {
       // assume it's a constructor
       this.services.push({
         type: service,
         forceCompute,
         dependents: [],
+        filename: getMetadata(service, MetadataKey.Filename),
+        serviceId: getMetadata(service, MetadataKey.ServiceId),
+        value: null,
+        invalid: false,
       });
     } else {
       // assume it's a class
@@ -39,74 +53,92 @@ export class CommandContainer {
         value: service,
         forceCompute,
         dependents: [],
+        filename: getMetadata(service.constructor, MetadataKey.Filename),
+        serviceId: getMetadata(service.constructor, MetadataKey.ServiceId),
+        invalid: false,
       });
     }
     return this;
   }
 
-  updateService(service: InstantiatedClass<any>): void {
+  hasService(service: any | Class): boolean {
+    if (typeof service === 'object') service = service.constructor;
+    return !!this.services.find(s => s.type == service);
+  }
+
+  updateService(service: any): void {
     const target = this.services.find(s => s.type == service.constructor);
     if (!target) {
-      throw new Error('No service with this constructor is registered');
+      this.registerService(service);
+      return;
     }
     target.value = service;
+    if (target.invalid) target.invalid = false;
     this.reloadDependents(target);
   }
 
-  private instantiateCommand(cmd: CommandClass): void {
-    const instance = this.injectServices<AbstractCommand>(cmd);
+  private instantiateCommand(cmd: Class): void {
+    assert(
+      hasMetadata(cmd, MetadataKey.Filename) &&
+        hasMetadata(cmd, MetadataKey.CommandId) &&
+        hasMetadata(cmd, MetadataKey.Info),
+      'The CommandClass has to be registered',
+    );
+    const instance = injectServices(cmd, this.services);
     if (!instance) throw new IllegalArgumentError('Command is undefined or null');
-    this.commands.push(instance);
+    const upperRestrict = getMetadata(cmd, MetadataKey.Restriction);
+    const info = getMetadata<CommandFnInfo[]>(cmd, MetadataKey.Info).map<CommandFnInfo>(i => ({
+      ...i,
+      restrict:
+        // use IIFE to pre get the metadata
+        (() => {
+          const ownRestrict = getMetadata(cmd.prototype, i.key, MetadataKey.Restriction);
+          return ownRestrict
+            ? upperRestrict
+              ? // combine restrictions
+                (user: any, instance: any) => upperRestrict(user, instance) && ownRestrict(user, instance)
+              : // use own function
+                ownRestrict
+            : // use upper function or undefined
+              upperRestrict;
+        })(),
+    }));
+    this.commands.push({
+      filename: getMetadata(cmd, MetadataKey.Filename),
+      commandId: getMetadata(cmd, MetadataKey.CommandId),
+      commands: info,
+      name: cmd.name,
+      class: cmd,
+      instance,
+    });
   }
 
-  private injectServices<T>(target: Class<T>): InstantiatedClass<T> {
-    if (target.length && Reflect && Reflect.getMetadata) {
-      const meta: ServiceConstructor<any>[] = Reflect.getMetadata('design:paramtypes', target);
-      const params = meta.map(t => {
-        if (!t.length) return new t();
-
-        let service = this.services.find(s => s.type === t);
-        if (!service) {
-          // this is temporary and only in dev
-          service = this.services.find(s => s.type.__serviceId === t.__serviceId);
-          if (!service) return undefined;
-        }
-        if (target.__commandId && !service.dependents.includes(target)) {
-          // it's a command constructor
-          service.dependents.push(target);
-        }
-        if (service.value) return service.value;
-
-        const instance = this.injectServices(service.type);
-        if (!service.forceCompute) service.value = instance;
-
-        return instance;
-      });
-      return new target(...params);
-    } else {
-      return new target();
-    }
-  }
-
-  get<T extends AbstractCommand>(matcher: string | CommandClass<T>): T {
+  get<T>(matcher: string | Class<T>): T {
+    let command;
     if (typeof matcher === 'string') {
-      // @ts-ignore -- assume the user knows the name and type
-      return this.commands.find(c => c.name === matcher);
-    } else if (typeof matcher === 'function') {
-      // @ts-ignore -- assume the user knows the name and type -- the class MUST have __filename
-      return this.commands.find(c => c.constructor.__commandId === matcher.__commandId);
+      matcher = matcher.toLowerCase();
+      command = this.commands.find(c => c.name.toLowerCase() === matcher);
     } else {
-      throw new Error('Unknown matcher');
+      command = this.commands.find(c => c.class === matcher);
+      const matcherId = getMetadata(matcher, MetadataKey.CommandId);
+      if (!command && matcherId) {
+        // search by id
+        command = this.commands.find(c => c.commandId === matcherId);
+      }
     }
+    return command?.instance;
   }
 
-  getService<T = any>(matcher: string | ServiceConstructor<T>): T {
+  getService<T = any>(matcher: string | Class<T>): T {
     if (typeof matcher === 'string') {
-      return this.services.find(c => c.type.name.toLowerCase() === matcher.toLowerCase())?.value as T;
+      matcher = matcher.toLowerCase();
+      return this.services.find(c => c.type.name.toLowerCase() === matcher)?.value as T;
     } else if (typeof matcher === 'function') {
-      return this.services.find(c => c.type.__serviceId === matcher.__serviceId)?.value as T;
+      const serviceId = getMetadata(matcher, MetadataKey.ServiceId);
+      assert(serviceId);
+      return this.services.find(c => c.serviceId === serviceId)?.value as T;
     } else {
-      throw new Error('Unknown matcher');
+      throw new IllegalArgumentError('matcher');
     }
   }
 
@@ -115,86 +147,114 @@ export class CommandContainer {
    * @param {string} name
    * @returns {AbstractCommand | undefined}
    */
-  getCommandByName(name: string): InstantiatedCommand | undefined {
+  getCommandByName(name: string): [CommandInstanceInfo, CommandFnInfo] | undefined {
     name = name.toLowerCase();
-    return this.commands.find(c => c.name.toLowerCase() === name || c.aliases?.find(a => a.toLowerCase() === name));
+    for (const wrapper of this.commands) {
+      for (const command of wrapper.commands) {
+        if (command.name.toLowerCase() === name || command.aliases?.find(a => a.toLowerCase() === name))
+          return [wrapper, command];
+      }
+    }
+    return undefined;
   }
 
-  reload(target: string | Class<AbstractCommand> | ServiceConstructor<any>) {
+  reload(target: string | Class): void {
     if (typeof target === 'string') {
       target = target.toLowerCase();
       const command = this.commands.find(
-        x => x.name.toLowerCase() === target || x.constructor.name.toLowerCase() === target,
+        x =>
+          x.name.toLowerCase() === target ||
+          x.class.name.toLowerCase() === target ||
+          x.commands.find(c => c.name.toLowerCase() === target),
       );
       if (command) {
         return this.reloadCommand(command);
       }
-      const service = this.services.find(x => x.type.name.toLowerCase() === target);
-      if (service) {
-        return this.registerService(service);
-      }
-      throw new Error('No command or service found.');
-    } else if (target.__commandId) {
-      // is command
-      const command = this.commands.find(x => x.constructor.__commandId === target.__commandId);
-      if (command) {
-        return this.reloadCommand(command);
-      }
-      throw new Error('No command found.');
-    } else {
-      // is service
-      const service = this.services.find(x => x.type.__serviceId === target.__serviceId);
+      const service = this.services.find(x => x.filename && x.type.name.toLowerCase() === target);
       if (service) {
         return this.reloadService(service);
       }
-      throw new Error('No service found.');
+      throw new NotFoundError(target);
+    } else if (hasMetadata(target, MetadataKey.CommandId)) {
+      // is command
+      const commandId = getMetadata(target, MetadataKey.CommandId);
+      const command = this.commands.find(x => x.commandId === commandId);
+      if (command) {
+        return this.reloadCommand(command);
+      }
+      throw new NotFoundError(target.name);
+    } else if (hasMetadata(target, MetadataKey.ServiceId)) {
+      // is service
+      const serviceId = getMetadata(target, MetadataKey.ServiceId);
+      const service = this.services.find(x => x.serviceId === serviceId);
+      if (service) {
+        return this.reloadService(service);
+      }
+      throw new NotFoundError(target.name);
     }
+    throw new IllegalArgumentError('target has to be a reloadable service or command');
   }
 
   reloadAll() {
-    const services = singleKey(this.services.map(s => [s.type.__filename, s.type.name]));
-    this.services = [];
+    const services = singleKey(
+      this.services
+        .filter(s => s.filename)
+        // @ts-ignore -- the filename is defined
+        .map<[string, string]>(s => [s.filename, s.type.name]),
+    );
+    // keep non reloadable services
+    this.services = this.services.filter(s => !s.filename);
     for (const [file, names] of services) {
       for (const name of names) this.registerService(findClassInModule(reloadFile(file), name));
     }
-    const commands = singleKey(this.commands.map(c => [c.constructor.__filename, c.constructor.name]));
+    const commands = singleKey(this.commands.map(c => [c.filename, c.class.name]));
     this.commands = [];
     for (const [file, names] of commands) {
       for (const name of names) this.loadCommand(findClassInModule(reloadFile(file), name));
     }
   }
 
-  private reloadCommand(cmd: InstantiatedCommand) {
-    const toReload = this.commands.filter(c => c.constructor.__filename === cmd.constructor.__filename);
-    const names = toReload.map(c => c.constructor.name);
+  private reloadCommand(cmd: CommandInstanceInfo) {
+    const toReload = this.commands.filter(c => c.filename === cmd.filename);
+    const names = toReload.map(c => c.class.name);
     this.commands = pull(this.commands, ...toReload);
 
-    const reloaded = reloadFile(cmd.constructor.__filename);
+    const reloaded = reloadFile(cmd.filename);
     for (const name of names) {
       this.instantiateCommand(findClassInModule(reloaded, name));
     }
   }
 
-  private reloadService(service: Service<any>) {
-    const toReload = this.services.filter(c => c.type.__filename === service.type.__filename);
-    const infos: [string, Array<Class<AbstractCommand>>][] = toReload.map(c => [c.type.name, c.dependents]);
+  private reloadService(service: ServiceInfo<any>) {
+    if (!service.filename) throw new IllegalArgumentError('service');
+    const toReload = this.services.filter(s => s.filename === service.filename);
+    const infos: [string, Array<string>][] = toReload.map(c => [c.type.name, c.dependents]);
     this.services = pull(this.services, ...toReload);
 
-    const reloaded = reloadFile(service.type.__filename);
+    const reloaded = reloadFile(service.filename);
     for (const [name, dependents] of infos) {
       this.registerService(findClassInModule(reloaded, name));
       this.reloadDependents(dependents);
     }
   }
 
-  private reloadDependents(service: Service<any> | Array<Class<AbstractCommand>>) {
+  private reloadDependents(service: ServiceInfo<any> | Array<string>) {
     const dependents = Array.isArray(service) ? service : service.dependents;
-    for (const dependent of this.commands.filter(c => dependents.includes(c.constructor))) {
+    for (const dependent of this.commands.filter(c => dependents.includes(c.filename))) {
       this.reloadCommand(dependent);
     }
   }
 }
 
+/**
+ *
+ * @param {[string, string][]} arr
+ * @returns {[string, string[]][]}
+ *
+ * @example
+ *
+ * [ [1, 2], [1,3],[1,4] ] => [ [1, [2, 3, 4] ] ]
+ */
 function singleKey(arr: [string, string][]): [string, string[]][] {
   const obj: { [x: string]: string[] } = {};
   for (const [k, v] of arr) {
@@ -209,19 +269,19 @@ function singleKey(arr: [string, string][]): [string, string[]][] {
 
 function reloadFile(file: string) {
   if (!require.cache[require.resolve(file)]) {
-    throw new Error(`No cache for ${file}`);
+    throw new NotFoundError(file);
   }
   delete require.cache[require.resolve(file)];
   return require(file);
 }
 
-function findClassInModule(module: any, name: string): CommandClass {
+function findClassInModule(module: any, name: string): Class {
   if (module.default && typeof module.default === 'function') return module.default;
 
   for (const [, value] of Object.entries(module)) {
     if (typeof value === 'function' && value.name === name) {
-      return value as CommandClass;
+      return value as Class;
     }
   }
-  throw new Error('No class found in module');
+  throw new NotFoundError(name);
 }

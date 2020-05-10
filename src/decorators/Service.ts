@@ -1,17 +1,9 @@
 import { Class } from '../types';
+import 'reflect-metadata';
+import { getCaller, MetadataKey, setMetadata } from './metadata';
 
-export type ServiceConstructor<T> = Class<T, { __registered?: true; __serviceId?: string; __filename?: string }>;
-
-export function Service() {
-  return function (target: ServiceConstructor<any>) {
-    target.__registered = true;
-    target.__filename = getCaller();
-    target.__serviceId = `${target.name}.${target.__filename}`;
-  };
-}
-
-function getCaller(): string {
-  const [, ...stack] = new Error().stack.split('\n');
-  const callerLine = stack.filter(x => !x.includes(__filename) && !x.includes('reflect-metadata'))[0];
-  return /\((.+)(?::\d+){2}\)/.exec(callerLine)?.[1];
-}
+export const Service = () => (target: Class) => {
+  const caller = getCaller(__filename);
+  setMetadata(target, MetadataKey.Filename, caller);
+  setMetadata(target, MetadataKey.ServiceId, `${target.name}.${caller}`);
+};

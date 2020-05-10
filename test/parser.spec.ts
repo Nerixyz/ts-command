@@ -1,7 +1,7 @@
 import * as assert from 'assert';
-import { CommandInfo } from '../src/decorators/Command';
 import { IllegalArgumentError } from '../src/errors';
-import { parseCommand, tokenizeMessage } from '../src/parsing';
+import { parseCommand, tokenizeMessage } from '../src';
+import { CommandArguments } from '../src/command.types';
 
 describe('Parser', () => {
   it('tokenized', () => {
@@ -16,7 +16,7 @@ describe('Parser', () => {
     ]);
   });
   it('parses strings', () => {
-    const config: CommandInfo<any> = [
+    const config: CommandArguments = [
       { name: 'first', type: 'string' },
       { name: 'second', type: 'string' },
       { name: 'optional', type: 'string', optional: true },
@@ -51,7 +51,7 @@ describe('Parser', () => {
     });
   });
   it('parses numbers', () => {
-    const config: CommandInfo<any> = [
+    const config: CommandArguments = [
       { name: 'first', type: 'number' },
       { name: 'second', type: 'number' },
     ];
@@ -62,7 +62,7 @@ describe('Parser', () => {
     });
   });
   it('parses flags', () => {
-    const config: CommandInfo<any> = [
+    const config: CommandArguments = [
       { name: 'flag', type: 'flag' },
       { name: 'flag2', type: 'flag' },
       { name: 'flag3', type: 'flag' },
@@ -75,7 +75,7 @@ describe('Parser', () => {
     });
   });
   it('parses long text', () => {
-    const config: CommandInfo<any> = [
+    const config: CommandArguments = [
       { name: 'flag', type: 'flag' },
       { name: 'num', type: 'number' },
       { name: 'str', type: 'string' },
@@ -89,7 +89,7 @@ describe('Parser', () => {
     });
   });
   it('fails on invalid input', () => {
-    const config: CommandInfo<any> = [
+    const config: CommandArguments = [
       { name: 'flag', type: 'flag' },
       { name: 'num', type: 'number' },
       { name: 'str', type: 'string' },

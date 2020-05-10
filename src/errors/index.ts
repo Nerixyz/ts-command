@@ -10,7 +10,7 @@ export class IllegalFormatError extends Error {
   }
 }
 
-export class CommandNotFoundError extends Error {
+export class NotFoundError extends Error {
   constructor(name: string) {
     super(`${name} could not be found.`);
   }

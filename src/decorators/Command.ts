@@ -1,34 +1,35 @@
 import 'reflect-metadata';
-import { AbstractCommand } from '../AbstractCommand';
-import { StrObject } from '../types';
+import { CommandArguments, CommandCreateInfo, CommandFn, CommandFnInfo, RestrictFunction } from '../command.types';
+import { addMetadata, getCaller, hasMetadata, MetadataKey, setMetadata } from './metadata';
+import * as assert from 'assert';
 
-export type CommandEntry<T> = {
-  type: 'string' | 'flag' | 'number' | 'toEnd';
-  name: keyof T;
-  optional?: true;
-};
-
-export type CommandInfo<T extends StrObject> = Array<CommandEntry<T>>;
-
-export type CommandTarget<T = {}> = Function & { new (...args: any[]): AbstractCommand<T> } & {
-  __filename?: string;
-  // {Name}.{Filename}
-  __commandId?: string;
-  __commandInfo?: CommandInfo<T>;
-};
-
-export function Command<T = {}>(args: CommandInfo<T>) {
-  return function (target: CommandTarget<T>) {
-    const targetFilename = getCaller();
-    const [, file] = /\\([^\\]+\.ts)$/.exec(targetFilename);
-    target.__filename = targetFilename;
-    target.__commandId = `${file}.${targetFilename}`;
-    target.__commandInfo = args;
+export function Command<T = {}>(name: string | string[], ...args: CommandCreateInfo<T>) {
+  // the descriptor is necessary for type checking
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  return function (target: any, key: string, descriptor: TypedPropertyDescriptor<CommandFn<T>>) {
+    assert(target.constructor, 'The @Command() decorator can only be used on a class-method');
+    // target: Class.prototype;
+    // Class.prototype: { constructor: Class };
+    // why? pepeLaugh I'm no aware
+    target = target.constructor;
+    if (!hasMetadata(target, MetadataKey.Filename) || !hasMetadata(target, MetadataKey.CommandId)) {
+      const caller = getCaller(__filename);
+      setMetadata(target, MetadataKey.Filename, caller);
+      setMetadata(target, MetadataKey.CommandId, `${target.name}.${caller}`);
+    }
+    addMetadata<CommandFnInfo>(target, MetadataKey.Info, {
+      name: typeof name === 'string' ? name : name[0],
+      key,
+      aliases: typeof name === 'string' ? [] : name.slice(1),
+      arguments: (args ?? []).map(a => (typeof a === 'string' ? { name: a, type: 'string' } : a)) as CommandArguments,
+    });
   };
 }
 
-function getCaller(): string {
-  const [, ...stack] = new Error().stack.split('\n');
-  const callerLine = stack.filter(x => !x.includes(__filename) && !x.includes('reflect-metadata'))[0];
-  return /\((.+)(?::\d+){2}\)/.exec(callerLine)?.[1];
+export function Restrict(fn: RestrictFunction) {
+  // only on command function
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  return function <K extends string>(target: any, key: K, descriptor: TypedPropertyDescriptor<CommandFn<any>>) {
+    setMetadata(target, key, MetadataKey.Restriction, fn);
+  };
 }
