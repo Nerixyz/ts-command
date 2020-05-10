@@ -10,4 +10,9 @@ export class CommandCollectionMock {
   test2({ arg2 }: { arg2: string }): string {
     return arg2;
   }
+
+  @Command('test3')
+  test3(): string[] {
+    return ['test'];
+  }
 }

@@ -10,7 +10,7 @@ export type CommandEntry<T> = {
 export type CommandArguments<T = any> = Array<CommandEntry<T>>;
 export type CommandCreateInfo<T> = Array<keyof T | CommandEntry<T>>;
 
-export type CommandFn<T extends StrObject, R extends string> = (args: T, user: any) => R | Promise<R>;
+export type CommandFn<T extends StrObject, R = any> = (args: T, user: any) => R | Promise<R>;
 export type CommandClassConstructor<T extends StrObject> = Class<AbstractCommand<T>>;
 
 export type RestrictFunction = (user: any, instance: any) => boolean;

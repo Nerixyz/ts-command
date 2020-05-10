@@ -1,6 +1,5 @@
 import { addMetadata, getCaller, hasMetadata, MetadataKey, setMetadata } from './metadata';
 import { Class } from '../types';
-import { AbstractCommand } from '../AbstractCommand';
 import { CommandClassConstructor, CommandCreateInfo, RestrictFunction } from '../command.types';
 
 export function CommandClass<T = {}>(name: string | string[], ...args: CommandCreateInfo<T>) {

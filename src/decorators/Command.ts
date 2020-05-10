@@ -3,7 +3,7 @@ import { CommandArguments, CommandCreateInfo, CommandFn, CommandFnInfo, Restrict
 import { addMetadata, getCaller, hasMetadata, MetadataKey, setMetadata } from './metadata';
 import * as assert from 'assert';
 
-export function Command<T = {}, R extends string = string>(name: string | string[], ...args: CommandCreateInfo<T>) {
+export function Command<T = {}, R = any>(name: string | string[], ...args: CommandCreateInfo<T>) {
   // the descriptor is necessary for type checking
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   return function (target: any, key: string, descriptor: TypedPropertyDescriptor<CommandFn<T, R>>) {
@@ -29,7 +29,7 @@ export function Command<T = {}, R extends string = string>(name: string | string
 export function Restrict(fn: RestrictFunction) {
   // only on command function
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  return function <K extends string>(target: any, key: K, descriptor: TypedPropertyDescriptor<CommandFn<any, any>>) {
+  return function <K extends string>(target: any, key: K, descriptor: TypedPropertyDescriptor<CommandFn<any>>) {
     setMetadata(target, key, MetadataKey.Restriction, fn);
   };
 }

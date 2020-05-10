@@ -55,14 +55,14 @@ export class CommandManager<User = any> {
     this.container.reloadAll();
   }
 
-  async onCommand<T extends string = string>(message: string, user: User): Promise<T> {
+  async onCommand<T = string>(message: string, user: User): Promise<T & string> {
     if (!message) throw new IllegalFormatError();
     const commandName = message.indexOf(' ') === -1 ? message : message.substring(0, message.indexOf(' '));
     if (!commandName) throw new IllegalFormatError();
 
     const tuple = this.container.getCommandByName(commandName);
     if (!tuple && commandName === 'reload') {
-      // @ts-ignore -- returns string
+      // @ts-ignore -- returns string as base
       return this.onReload(message, user);
     }
     if (!tuple || tuple.length !== 2 || !tuple[1]) throw new NotFoundError(commandName.substring(0, 40));
