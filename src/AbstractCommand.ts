@@ -1,5 +1,5 @@
 import 'reflect-metadata';
 
-export abstract class AbstractCommand<Props = {}> {
-  abstract run(props: Props, user: any): string | Promise<string>;
+export abstract class AbstractCommand<Props = {}, R extends string = string> {
+  abstract run(props: Props, user: any): R | Promise<R>;
 }
