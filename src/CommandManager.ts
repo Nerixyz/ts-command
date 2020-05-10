@@ -82,7 +82,7 @@ export class CommandManager<User = any> {
     const argsObj = parseCommand(argsPart, tokenizeMessage(argsPart), command.arguments);
 
     preCommand?.();
-    await wrapper.instance[command.key](argsObj, user);
+    return await wrapper.instance[command.key](argsObj, user);
   }
 
   private onReload(message: string, user: User): string {
