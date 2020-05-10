@@ -1,7 +1,4 @@
-import { Command, CommandClass } from '../../src/decorators';
-import { Timeout } from '../../src/decorators/Timeout';
-import { AbstractCommand } from '../../src';
-import { TimeoutClass } from '../../src/decorators/TimeoutClass';
+import { Command, CommandClass, TimeoutClass, Timeout, AbstractCommand } from '../../src';
 
 export class TimeoutCollectionMock {
   @Timeout(500)
