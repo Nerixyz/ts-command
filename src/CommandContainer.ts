@@ -87,6 +87,7 @@ export class CommandContainer {
     const instance = injectServices(cmd, this.services);
     if (!instance) throw new IllegalArgumentError('Command is undefined or null');
     const upperRestrict = getMetadata(cmd, MetadataKey.Restriction);
+    const upperTimeout: number | undefined = getMetadata(cmd, MetadataKey.Timeout);
     const info = getMetadata<CommandFnInfo[]>(cmd, MetadataKey.Info).map<CommandFnInfo>(i => ({
       ...i,
       restrict:
@@ -102,6 +103,7 @@ export class CommandContainer {
             : // use upper function or undefined
               upperRestrict;
         })(),
+      timeout: Math.max(upperTimeout || 0, getMetadata(cmd.prototype, i.key, MetadataKey.Timeout) || 0),
     }));
     this.commands.push({
       filename: getMetadata(cmd, MetadataKey.Filename),

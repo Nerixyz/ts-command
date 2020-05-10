@@ -88,4 +88,5 @@ export enum MetadataKey {
   Info = 'cmd:info',
   Restriction = 'cmd:restriction',
   CommandId = 'cmd:command-id',
+  Timeout = 'cmd:timeout',
 }

@@ -21,4 +21,6 @@ export interface CommandFnInfo {
   aliases: string[];
   arguments: CommandArguments<any>;
   restrict?: RestrictFunction;
+  timeout?: number;
+  lastTimestamp?: number;
 }

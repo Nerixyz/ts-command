@@ -16,8 +16,14 @@ export class NotFoundError extends Error {
   }
 }
 
-export class CommandNotEnabled extends Error {
+export class CommandNotEnabledError extends Error {
   constructor(public readonly user: any, command: string) {
+    super(`${command} is not enabled.`);
+  }
+}
+
+export class CommandTimeoutError extends Error {
+  constructor(command: string) {
     super(`${command} is not enabled.`);
   }
 }

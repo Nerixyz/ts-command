@@ -1,5 +1,5 @@
 import { Class } from './types';
-import { CommandNotEnabled, NotFoundError, IllegalFormatError } from './errors';
+import { CommandNotEnabledError, NotFoundError, IllegalFormatError, CommandTimeoutError } from './errors';
 import { parseCommand, tokenizeMessage } from './parsing';
 import { CommandContainer } from './CommandContainer';
 import { performance } from 'perf_hooks';
@@ -68,7 +68,15 @@ export class CommandManager<User = any> {
     if (!tuple || tuple.length !== 2 || !tuple[1]) throw new NotFoundError(commandName.substring(0, 40));
     const [wrapper, command] = tuple;
 
-    if (command.restrict && !command.restrict(user, wrapper.instance)) throw new CommandNotEnabled(user, command.name);
+    if (command.restrict && !command.restrict(user, wrapper.instance))
+      throw new CommandNotEnabledError(user, command.name);
+    if (command.timeout) {
+      const now = Date.now();
+      if (now - command.lastTimestamp < command.timeout) {
+        throw new CommandTimeoutError(command.name);
+      }
+      command.lastTimestamp = now;
+    }
 
     const argsPart = message.substring(commandName.length + 1);
     const argsObj = parseCommand(argsPart, tokenizeMessage(argsPart), command.arguments);
@@ -79,7 +87,7 @@ export class CommandManager<User = any> {
   private onReload(message: string, user: User): string {
     try {
       if (!this.reloadOptions.enabled || !this.reloadOptions.restrict(user))
-        throw new CommandNotEnabled(user, 'reload');
+        throw new CommandNotEnabledError(user, 'reload');
       const argsPart = message.substring('reload'.length + 1);
       const { arg } = parseCommand(argsPart, tokenizeMessage(argsPart), [{ type: 'string', name: 'arg' }]);
       const start = performance.now();
