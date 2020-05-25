@@ -47,6 +47,10 @@ export class CommandManager<User = any> {
     return this.container.get(matcher);
   }
 
+  getService<T>(matcher: string | Class<T>): T {
+    return this.container.getService(matcher);
+  }
+
   reload(target: string | Class) {
     this.container.reload(target);
   }
