@@ -144,6 +144,10 @@ export class CommandContainer {
     }
   }
 
+  injectServices<T>(target: Class<T>): T {
+    return injectServices(target, this.services);
+  }
+
   /**
    * Get a command by name (case-insensitive)
    * @param {string} name
