@@ -164,6 +164,10 @@ export class CommandContainer {
     return undefined;
   }
 
+  getAllCommands(): CommandFnInfo[] {
+    return this.commands.map(x => x.commands).flat();
+  }
+
   reload(target: string | Class): void {
     if (typeof target === 'string') {
       target = target.toLowerCase();

@@ -3,6 +3,7 @@ import { CommandNotEnabledError, NotFoundError, IllegalFormatError, CommandTimeo
 import { parseCommand, tokenizeMessage } from './parsing';
 import { CommandContainer } from './CommandContainer';
 import { performance } from 'perf_hooks';
+import { CommandFn, CommandFnInfo } from './command.types';
 
 export interface ReloadOptions<User = any> {
   enabled: boolean;
@@ -63,6 +64,17 @@ export class CommandManager<User = any> {
     this.container.reloadAll();
   }
 
+  getAllCommands(): CommandFnInfo[] {
+    return this.container.getAllCommands();
+  }
+
+  /**
+   * @throws {IllegalFormatError|CommandNotEnabledError|CommandTimeoutError|NotFoundError|IllegalArgumentError}
+   * @param {string} message
+   * @param {User} user
+   * @param {() => void} preCommand
+   * @returns {Promise<T & string>}
+   */
   async onCommand<T = string>(message: string, user: User, preCommand?: () => void): Promise<T & string> {
     if (!message) throw new IllegalFormatError();
     const commandName = message.indexOf(' ') === -1 ? message : message.substring(0, message.indexOf(' '));
@@ -86,11 +98,17 @@ export class CommandManager<User = any> {
       command.lastTimestamp = now;
     }
 
-    const argsPart = message.substring(commandName.length + 1);
+    const argsPart = message.substring(commandName.length + 1).trim();
     const argsObj = parseCommand(argsPart, tokenizeMessage(argsPart), command.arguments);
 
     preCommand?.();
-    return await wrapper.instance[command.key](argsObj, user);
+    // noinspection ES6RedundantAwait
+    return await (wrapper.instance[command.key] as CommandFn<any, T & string>)(argsObj, user, {
+      commandInfo: command,
+      commandName,
+      message,
+      rawArgs: argsPart,
+    });
   }
 
   private onReload(message: string, user: User): string {
