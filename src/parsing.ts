@@ -42,6 +42,7 @@ export function parseCommand<T extends StrObject>(
     } else {
       // type: string | number
       const item = next()?.[0];
+      if (typeof item === 'undefined') throw new IllegalArgumentError(name.toString(), 'Item is required');
       obj[name] = type === 'number' ? Number(item) : item;
     }
     if (msgIdx >= splitted.length) break;

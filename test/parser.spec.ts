@@ -106,4 +106,11 @@ describe('Parser', () => {
       parseCommand(message, tokenizeMessage(message), config);
     }, IllegalArgumentError);
   });
+  it('should require non-optional numbers', function () {
+    const config: CommandArguments = [{ name: 'num', type: 'number' }];
+    const message = ' ';
+    assert.throws(() => {
+      parseCommand(message, tokenizeMessage(message), config);
+    }, IllegalArgumentError);
+  });
 });
