@@ -83,7 +83,9 @@ function readUntil(str: string, start: number, stop: string): [string, number] {
   return [buffer, str.length];
 }
 
+// todo: /(?:([^ "']+)|"([^"]+)"|'([^']+)')(?: |$)/g
 export function tokenizeMessage(target: string): [string, number][] {
+  target = target.trim();
   const results: [string, number][] = [];
   for (let i = 0; i < target.length; i++) {
     const [res, mod] = readUntil(target, i, ' ');

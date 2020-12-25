@@ -99,4 +99,11 @@ describe('Parser', () => {
       parseCommand(message, tokenizeMessage(message), config);
     }, IllegalArgumentError);
   });
+  it('should require non-optional strings', function () {
+    const config: CommandArguments = [{ name: 'str', type: 'string' }];
+    const message = ' ';
+    assert.throws(() => {
+      parseCommand(message, tokenizeMessage(message), config);
+    }, IllegalArgumentError);
+  });
 });
