@@ -111,6 +111,13 @@ export class CommandManager<User = any> {
     });
   }
 
+  public getCommandInfoFromMessage(message: string): CommandFnInfo | undefined {
+    const commandName = message.indexOf(' ') === -1 ? message : message.substring(0, message.indexOf(' '));
+    if (!commandName) return undefined;
+
+    return this.container.getCommandByName(commandName)?.[1];
+  }
+
   private onReload(message: string, user: User): string {
     try {
       if (!this.reloadOptions.enabled || !this.reloadOptions.restrict(user))
